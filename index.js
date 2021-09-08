@@ -2,6 +2,7 @@ const express = require("express");
 const { MongoClient } = require("mongodb");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken")
+const cors = require("cors")
 require("dotenv").config()
 
 const app = express()
@@ -25,9 +26,12 @@ connect().catch(console.error);
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}))
+app.use(cors())
 
 app.post("/login", async (req, res) => {
-  await client.db("myFirstDatabase").collection("users").findOne({ email: req.body.email}).then((user) =>{
+  console.log(req.body)
+  const email = req.body.email
+  await client.db("myFirstDatabase").collection("users").findOne({ email: email}).then((user) =>{
     if(!user){
       res.json({
         message: "email doesn't exist"
@@ -49,11 +53,10 @@ app.post("/login", async (req, res) => {
           } )        
           return res.json({
             status: "ok", 
-            message: "user loged in",
-            role: user.role
+            message: "user loged in"
           })
         } else {
-          return res.json({ status: "error", message: "entered password is incorrect" });
+          return res.json({ status: "error", message: "password is incorrect" });
         }
         })
       
@@ -62,6 +65,7 @@ app.post("/login", async (req, res) => {
 });
 
 app.post("/register",async (req, res) => {
+  console.log(req.body)
   const plainPassword = req.body.password
   const email = req.body.email
   const password = await bcrypt.hash(plainPassword, 10)
