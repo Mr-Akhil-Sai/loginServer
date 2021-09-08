@@ -48,11 +48,12 @@ app.post("/login", async (req, res) => {
             },
             process.env.JWT_SECRET
           );
-          res.cookie("jwt",token,{
-            expiresIn: maxAge
-          } )        
+          // res.cookie("jwt",token,{
+          //   expiresIn: maxAge
+          // } )        
+          console.log("login");
           return res.json({
-            status: "ok", 
+            token: token,
             message: "user loged in"
           })
         } else {
