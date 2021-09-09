@@ -38,6 +38,7 @@ app.post("/login", async (req, res) => {
       })
     }
     else{
+      console.log(user)
       bcrypt.compare(req.body.password ,user.password, (err, isMatch)=>{
         if(isMatch){
           const maxAge = 24 * 60 * 60
@@ -48,13 +49,10 @@ app.post("/login", async (req, res) => {
             },
             process.env.JWT_SECRET
           );
-          // res.cookie("jwt",token,{
-          //   expiresIn: maxAge
-          // } )        
-          console.log("login");
           return res.json({
             token: token,
-            message: "user loged in"
+            message: "user loged in",
+            user: user
           })
         } else {
           return res.json({ status: "error", message: "password is incorrect" });
