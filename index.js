@@ -38,7 +38,6 @@ app.post("/login", async (req, res) => {
       })
     }
     else{
-      console.log(user)
       bcrypt.compare(req.body.password ,user.password, (err, isMatch)=>{
         if(isMatch){
           const maxAge = 24 * 60 * 60
@@ -64,7 +63,6 @@ app.post("/login", async (req, res) => {
 });
 
 app.post("/register",async (req, res) => {
-  console.log(req.body)
   const plainPassword = req.body.password
   const email = req.body.email
   const password = await bcrypt.hash(plainPassword, 10)
@@ -93,4 +91,47 @@ app.post("/register",async (req, res) => {
      })
      });
 
+let updatedEmail 
+app.post("/update", async (req, res)=>{
+  updatedEmail = req.body.newEmail
+  const email = req.body.oldEmail
+  const plainPassword = req.body.password
+  const password = await bcrypt.hash(plainPassword, 10)
+  await client.db("myFirstDatabase").collection("users").updateOne({email : email},{$set: {
+    name: req.body.name,
+    email: req.body.newEmail,
+    password: password,
+    address: req.body.address,
+    street: req.body.street, 
+    city: req.body.city,
+    state: req.body.state, 
+    country: req.body.country,
+    DateOfBirth: req.body.dateOfBirth,
+    Gender: req.body.gender 
+  }})
+  res.json({
+    message: "user updated successfully"
+  })
+  console.log(updatedEmail);
+})
+
+app.get("/user", async (req, res) => {
+  console.log(updatedEmail);
+  await client.db("myFirstDatabase").collection("users").findOne({ email: updatedEmail}).then((user)=>{
+    if(user){
+      res.json({
+        message: "got user",
+        user: user
+      })
+      console.log(user)
+      updatedEmail = ""
+      console.log(updatedEmail)
+    }
+    else{
+      res.json({
+        message: 'something went worng'
+      })
+    }
+  })
+})
 app.listen(PORT, () => console.log(`listening on ${PORT}`));
