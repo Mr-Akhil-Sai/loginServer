@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient } = require("mongodb");
+const { MongoClient, MongoCursorInUseError } = require("mongodb");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken")
 const cors = require("cors")
@@ -31,30 +31,22 @@ app.use(cors())
 app.post("/login", async (req, res) => {
   console.log(req.body)
   const email = req.body.email
-  await client.db("myFirstDatabase").collection("users").findOne({ email: email}).then((user) =>{
+  await client.db("myFirstDatabase").collection("users").findOne({ Email: email}).then((user) =>{
     if(!user){
-      res.json({
+      res.status(403).json({
         message: "email doesn't exist"
       })
     }
     else{
-      bcrypt.compare(req.body.password ,user.password, (err, isMatch)=>{
+      bcrypt.compare(req.body.password ,user.Password, (err, isMatch)=>{
         if(isMatch){
-          const maxAge = 24 * 60 * 60
-          const token = jwt.sign(
-            {
-              id: user._id,
-              username: user.userName,
-            },
-            process.env.JWT_SECRET
-          );
-          return res.json({
-            token: token,
+          return res.status(202).json({
             message: "user loged in",
-            user: user
+
+            token: user.token
           })
         } else {
-          return res.json({ status: "error", message: "password is incorrect" });
+          return res.status(404).json({ message: "password is incorrect" });
         }
         })
       
@@ -66,27 +58,36 @@ app.post("/register",async (req, res) => {
   const plainPassword = req.body.password
   const email = req.body.email
   const password = await bcrypt.hash(plainPassword, 10)
-  const result = await client.db("myFirstDatabase").collection("users").findOne({ email: email}).then((user) =>{
+  const result = await client.db("myFirstDatabase").collection("users").findOne({ Email: email}).then((user) =>{
     if(user){
-      res.json({
+      res.status(403).json({
         message: "user already exists"
       })
     }
     else{
+      const token = jwt.sign(
+        {
+          username: req.body.email,
+        },
+        process.env.JWT_SECRET
+      );
        client.db("myFirstDatabase").collection("users").insertOne({
-        name: req.body.name,
-        email: email,
-        password: password,
-        address: req.body.address,
-        street: req.body.street, 
-        city: req.body.city,
-        state: req.body.state, 
-        country: req.body.country,
+        Name: req.body.name,
+        Email: email,
+        Password: password,
+        Address: req.body.address,
+        Street: req.body.street, 
+        City: req.body.city,
+        State: req.body.state, 
+        Country: req.body.country,
         DateOfBirth: req.body.dateOfBirth,
-        Gender: req.body.gender 
+        Gender: req.body.gender,
+        Device_id:"",
+        token: token
       })
       res.json({
-        message: "user registered"
+        message: "user registered",
+        token: token
       } )}
      })
      });
@@ -97,16 +98,17 @@ app.post("/update", async (req, res)=>{
   const email = req.body.oldEmail
   const plainPassword = req.body.password
   const password = await bcrypt.hash(plainPassword, 10)
-  await client.db("myFirstDatabase").collection("users").updateOne({email : email},{$set: {
-    name: req.body.name,
-    email: req.body.newEmail,
-    password: password,
-    address: req.body.address,
-    street: req.body.street, 
-    city: req.body.city,
-    state: req.body.state, 
-    country: req.body.country,
+  await client.db("myFirstDatabase").collection("users").updateOne({Email : email},{$set: {
+    Name: req.body.name,
+    Email: req.body.newEmail,
+    Password: password,
+    Address: req.body.address,
+    Street: req.body.street, 
+    City: req.body.city,
+    State: req.body.state, 
+    Country: req.body.country,
     DateOfBirth: req.body.dateOfBirth,
+    Serial_No:"",
     Gender: req.body.gender 
   }})
   res.json({
@@ -116,8 +118,9 @@ app.post("/update", async (req, res)=>{
 })
 
 app.get("/user", async (req, res) => {
-  console.log(updatedEmail);
-  await client.db("myFirstDatabase").collection("users").findOne({ email: updatedEmail}).then((user)=>{
+  const token = req.headers.token
+  console.log(token);
+  await client.db("myFirstDatabase").collection("users").findOne({ token: token}).then((user)=>{
     if(user){
       res.json({
         message: "got user",
@@ -128,10 +131,22 @@ app.get("/user", async (req, res) => {
       console.log(updatedEmail)
     }
     else{
-      res.json({
+      res.status(401).json({
         message: 'something went worng'
       })
     }
   })
+})
+
+app.post("/linkDevice", async(req, res)=>{
+  console.log(req.body)
+  const token = req.headers.token
+  await client.db("myFirstDataba").collection("users").updateOne({token: token},{$set: {
+    device: req.body.serialNo
+  }})
+  res.status(203).json({
+    message: "Device linked succesfully"
+  })
+
 })
 app.listen(PORT, () => console.log(`listening on ${PORT}`));
